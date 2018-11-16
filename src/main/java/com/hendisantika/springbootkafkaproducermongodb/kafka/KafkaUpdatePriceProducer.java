@@ -3,6 +3,7 @@ package com.hendisantika.springbootkafkaproducermongodb.kafka;
 import com.hendisantika.springbootkafkaproducermongodb.model.Inventory;
 import com.hendisantika.springbootkafkaproducermongodb.repository.InventoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.mongodb.core.messaging.Message;
 import org.springframework.stereotype.Component;
 
