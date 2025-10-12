@@ -11,6 +11,24 @@ This application provides a web-based inventory management system that:
 - Provides REST API and Web UI for managing inventory
 - Uses Swagger for API documentation
 
+## Image Screen shot
+
+Add New Product
+
+![Add New Product](img/add_product.png "Add New Product")
+
+List All Product
+
+![List All Product](img/list.png "List All Product")
+
+Update Stock
+
+![Update Stock](img/update_stock.png "Update Stock")
+
+Update Price
+
+![Update Price](img/update_price.png "Update Price")
+
 ## Tech Stack
 
 - **Java 21**
