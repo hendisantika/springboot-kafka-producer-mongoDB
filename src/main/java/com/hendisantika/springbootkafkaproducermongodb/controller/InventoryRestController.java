@@ -2,11 +2,10 @@ package com.hendisantika.springbootkafkaproducermongodb.controller;
 
 import com.hendisantika.springbootkafkaproducermongodb.model.Inventory;
 import com.hendisantika.springbootkafkaproducermongodb.repository.InventoryRepository;
-import io.swagger.annotations.ApiImplicitParam;
-import io.swagger.annotations.ApiImplicitParams;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -29,18 +28,17 @@ public class InventoryRestController {
     @Autowired
     private InventoryRepository repository;
 
-    @ApiOperation(value = "GetInventoryData", nickname = "getInventory")
+    @Operation(summary = "GetInventoryData", description = "Get inventory by code")
     @RequestMapping(method = RequestMethod.GET, path = "/getInventoryByCode", produces = "application/json")
-    @ApiImplicitParams({@ApiImplicitParam(name = "id", value = "Inventory Id",
-            required = false, dataType = "string", paramType = "query", defaultValue = "1")
-    })
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Success", response = Inventory.class),
-            @ApiResponse(code = 401, message = "Unauthorized"),
-            @ApiResponse(code = 403, message = "Forbidden"),
-            @ApiResponse(code = 404, message = "Not Found"),
-            @ApiResponse(code = 500, message = "Failure")})
-    public Inventory getInventory(@RequestParam(value = "id", defaultValue = "1") String id) {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden"),
+            @ApiResponse(responseCode = "404", description = "Not Found"),
+            @ApiResponse(responseCode = "500", description = "Failure")})
+    public Inventory getInventory(
+            @Parameter(description = "Inventory Id", required = false)
+            @RequestParam(value = "id", defaultValue = "1") String id) {
         return repository.findById(id).orElse(null);
     }
 }
