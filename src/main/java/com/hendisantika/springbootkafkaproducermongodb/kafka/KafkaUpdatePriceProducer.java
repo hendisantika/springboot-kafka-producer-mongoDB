@@ -2,9 +2,9 @@ package com.hendisantika.springbootkafkaproducermongodb.kafka;
 
 import com.hendisantika.springbootkafkaproducermongodb.model.Inventory;
 import com.hendisantika.springbootkafkaproducermongodb.repository.InventoryRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.data.mongodb.core.messaging.Message;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 /**
@@ -17,27 +17,23 @@ import org.springframework.stereotype.Component;
  * Time: 07.14
  */
 @Component
+@RequiredArgsConstructor
 public class KafkaUpdatePriceProducer implements UpdatePriceProducer {
 
-    @Autowired
-    private InventoryRepository repository;
+    private final InventoryRepository repository;
+    private final KafkaTemplate<String, String> kafkaTemplate;
 
-    private MessageChannel toKafka;
-
-    @Autowired
-    public KafkaUpdatePriceProducer(@Qualifier("toKafka") MessageChannel toKafka) {
-        this.toKafka = toKafka;
-    }
+    @Value("${kafka.topic:inventoryTest}")
+    private String topic;
 
     @Override
     public void updateDataPriceAndPublishToKafka(String id, double price) {
 
-        Inventory inventory = repository.findById(id);
+        Inventory inventory = repository.findProductById(id);
         //check if new price < old price (diskon)
         //send to kafka
-        if (price < inventory.getPrice()) {
-            Message<?> content = new GenericMessage<String>(Double.toString(price));
-            toKafka.send(content);
+        if (inventory != null && price < inventory.getPrice()) {
+            kafkaTemplate.send(topic, id, Double.toString(price));
         }
         repository.updatePriceProduct(id, price);
     }

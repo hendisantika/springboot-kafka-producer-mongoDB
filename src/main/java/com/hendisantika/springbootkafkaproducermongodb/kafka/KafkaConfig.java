@@ -1,12 +1,23 @@
 package com.hendisantika.springbootkafkaproducermongodb.kafka;
 
-import com.fasterxml.jackson.databind.ser.std.StringSerializer;
+import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.codec.StringDecoder;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.config.TopicBuilder;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
 
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by IntelliJ IDEA.
@@ -25,74 +36,45 @@ public class KafkaConfig {
     @Value("${kafka.broker.address:localhost:9092}")
     private String brokerAddress;
 
-    @Value("${kafka.zookeeper.connect:localhost:2181}")
-    private String zookeeperConnect;
-
-    @ServiceActivator(inputChannel = "toKafka")
     @Bean
-    public MessageHandler handler() throws Exception {
-        KafkaProducerMessageHandler handler = new KafkaProducerMessageHandler(producerContext());
-        handler.setTopicExpression(new LiteralExpression(this.topic));
-        return handler;
+    public ProducerFactory<String, String> producerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, brokerAddress);
+        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        configProps.put(ProducerConfig.LINGER_MS_CONFIG, 1000);
+        return new DefaultKafkaProducerFactory<>(configProps);
     }
 
     @Bean
-    public ConnectionFactory kafkaBrokerConnectionFactory() {
-        return new DefaultConnectionFactory(kafkaConfiguration());
+    public KafkaTemplate<String, String> kafkaTemplate() {
+        return new KafkaTemplate<>(producerFactory());
     }
 
     @Bean
-    public org.springframework.integration.kafka.core.Configuration kafkaConfiguration() {
-        BrokerAddressListConfiguration configuration = new BrokerAddressListConfiguration(
-                BrokerAddress.fromAddress(this.brokerAddress));
-        configuration.setSocketTimeout(500);
-        return configuration;
+    public ConsumerFactory<String, String> consumerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, brokerAddress);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "inventory-group");
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        return new DefaultKafkaConsumerFactory<>(props);
     }
 
     @Bean
-    public KafkaProducerContext producerContext() {
-        KafkaProducerContext kafkaProducerContext = new KafkaProducerContext();
-        ProducerMetadata<String, String> producerMetadata = new ProducerMetadata<>(this.topic, String.class,
-                String.class, new StringSerializer(), new StringSerializer());
-        Properties props = new Properties();
-        props.put("linger.ms", "1000");
-        ProducerFactoryBean<String, String> producer =
-                new ProducerFactoryBean<>(producerMetadata, this.brokerAddress, props);
-        ProducerConfiguration<String, String> config =
-                new ProducerConfiguration<>(producerMetadata, producer.getObject());
-        Map<String, ProducerConfiguration<?, ?>> producerConfigurationMap =
-                Collections.<String, ProducerConfiguration<?, ?>>singletonMap(this.topic, config);
-        kafkaProducerContext.setProducerConfigurations(producerConfigurationMap);
-        return kafkaProducerContext;
+    public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, String> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
+        return factory;
     }
 
     @Bean
-    public KafkaMessageListenerContainer container() throws Exception {
-        final KafkaMessageListenerContainer kafkaMessageListenerContainer = new KafkaMessageListenerContainer(
-                kafkaBrokerConnectionFactory(), new Partition(this.topic, 0));
-        kafkaMessageListenerContainer.setMaxFetch(100);
-        kafkaMessageListenerContainer.setConcurrency(1);
-        return kafkaMessageListenerContainer;
-    }
-
-    @Bean
-    public KafkaMessageDrivenChannelAdapter adapter(KafkaMessageListenerContainer container) {
-        KafkaMessageDrivenChannelAdapter kafkaMessageDrivenChannelAdapter =
-                new KafkaMessageDrivenChannelAdapter(container);
-        StringDecoder decoder = new StringDecoder();
-        kafkaMessageDrivenChannelAdapter.setKeyDecoder(decoder);
-        kafkaMessageDrivenChannelAdapter.setPayloadDecoder(decoder);
-        kafkaMessageDrivenChannelAdapter.setOutputChannel(fromKafka());
-        return kafkaMessageDrivenChannelAdapter;
-    }
-
-    @Bean
-    public PollableChannel fromKafka() {
-        return new QueueChannel();
-    }
-
-    @Bean
-    public TopicCreator topicCreator() {
-        return new TopicCreator(this.topic, this.zookeeperConnect);
+    public NewTopic inventoryTopic() {
+        return TopicBuilder.name(topic)
+                .partitions(1)
+                .replicas(1)
+                .build();
     }
 }

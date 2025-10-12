@@ -1,6 +1,7 @@
 package com.hendisantika.springbootkafkaproducermongodb.model;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 import org.springframework.data.annotation.Id;
 
@@ -14,7 +15,8 @@ import org.springframework.data.annotation.Id;
  * Time: 07.09
  */
 
-@Data
+@Getter
+@Setter
 @ToString
 public class Inventory {
     public static final String COLLECTION_NAME = "inventory";
